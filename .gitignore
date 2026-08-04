@@ -1,0 +1,5 @@
+.pio
+.venv
+.vscode
+./src/build
+src/keys.h
