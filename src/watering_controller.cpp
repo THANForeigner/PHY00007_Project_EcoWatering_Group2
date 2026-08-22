@@ -1,15 +1,31 @@
 #include <Arduino.h>
-
 #include "app_state.h"
 #include "i2c_service.h"
 #include "mqtt_service.h"
-
+static unsigned long pumpStartTime = 0; 
+const int PUMP_FLOW_RATE_ML_PER_S = 22;
 void turnPumpOn(const char* reason) {
+  if (sensorData.water <= 5) {
+    Serial.println("Action REJECTED: Cannot turn ON pump. Water tank is empty!");
+    Serial.print("Original reason: ");
+    Serial.println(reason);
+    publishEvent("off", "Rejected: Water tank empty");
+    return;
+  }
+
   if (pumpState) return;
+  
   pumpState = true;
+  pumpStartTime = millis(); // Bắt đầu bấm giờ
+  
+  // Tính toán thời gian sẽ tưới (để log ra cho dễ theo dõi)
+  unsigned long durationMs = (wateringConfig.waterAmount * 1000) / 22;
+  
   Serial.println("Action: Pump turned ON");
   Serial.print("Reason: ");
   Serial.println(reason);
+  Serial.printf("Target: %d ml -> Duration: %lu ms\n", wateringConfig.waterAmount, durationMs);
+  
   sendCommandToArduino("PUMP_ON");
   publishEvent("on", reason);
 }
@@ -32,7 +48,7 @@ void checkWateringCondition() {
   Serial.printf("Soil: %d%%\nTemperature: %.1f C\nHumidity: %.1f%%\nLight: %d%%\nWater Level: %d%%\nPump: %s\n",
                 sensorData.soil, sensorData.temperature, sensorData.humidity,
                 sensorData.light, sensorData.water, pumpState ? "ON" : "OFF");
-  const bool isOutOfWater = sensorData.water < 10; 
+  const bool isOutOfWater = sensorData.water <= 5; 
 
   if (!pumpState) { // TRẠNG THÁI: BƠM ĐANG TẮT
     const bool soilIsDry = sensorData.soil < wateringConfig.soilOnBelow;
@@ -54,19 +70,28 @@ void checkWateringCondition() {
       }
     }
   } else { // TRẠNG THÁI: BƠM ĐANG BẬT (ĐANG TƯỚI)
+    
+    // Tính toán xem đã bơm đủ thời gian (đủ waterAmount) chưa?
+    unsigned long requiredDurationMs = (wateringConfig.waterAmount * 1000) / 22;
+    const bool targetAmountReached = (millis() - pumpStartTime) >= requiredDurationMs;
+
     const bool soilIsWetEnough = sensorData.soil > wateringConfig.soilOffAbove;
     const bool temperatureTooHigh = sensorData.temperature > wateringConfig.tempStop;
     const bool humidityTooHigh = sensorData.humidity > wateringConfig.humidityStop;
     const bool lightTooHigh = sensorData.light > wateringConfig.lightStop;
-    Serial.printf("Soil wet enough: %s\nTemperature too high: %s\nHumidity too high: %s\nLight too high: %s\nOut of water: %s\n",
-                  soilIsWetEnough ? "YES" : "NO", temperatureTooHigh ? "YES" : "NO",
-                  humidityTooHigh ? "YES" : "NO", lightTooHigh ? "YES" : "NO", 
-                  isOutOfWater ? "YES" : "NO");
+    
+    Serial.printf("Target Amount Reached: %s\nSoil wet enough: %s\nTemperature too high: %s\nOut of water: %s\n",
+                  targetAmountReached ? "YES" : "NO", soilIsWetEnough ? "YES" : "NO", 
+                  temperatureTooHigh ? "YES" : "NO", isOutOfWater ? "YES" : "NO");
+                  
     if (isOutOfWater) {
       turnPumpOff("EMERGENCY STOP: Water tank is empty!");
     } 
+    else if (targetAmountReached) {
+      turnPumpOff("Watering STOP: Reached target waterAmount");
+    }
     else if (soilIsWetEnough || temperatureTooHigh || humidityTooHigh || lightTooHigh) {
-      turnPumpOff("Watering stop condition reached");
+      turnPumpOff("Watering STOP: Sensor condition reached");
     } else {
       Serial.println("-> Continue watering");
     }

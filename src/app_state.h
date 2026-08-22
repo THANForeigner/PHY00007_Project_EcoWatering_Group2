@@ -6,7 +6,7 @@ struct SensorData {
   int light = 0;
   int soil = 0;
   int water = 0;
-  int button = 0;
+  int motor = 0;
 };
 
 struct WateringConfig {
@@ -24,4 +24,4 @@ struct WateringConfig {
 
 extern SensorData sensorData;
 extern WateringConfig wateringConfig;
-extern bool pumpState;
+extern bool pumpState; 

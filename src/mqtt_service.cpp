@@ -87,6 +87,7 @@ void setupMqtt() {
   espClient.setInsecure();
   mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
   mqttClient.setCallback(mqttCallback);
+  mqttClient.setBufferSize(1024);
 }
 
 void maintainMqttConnection() {
@@ -115,7 +116,7 @@ void publishStatus() {
   doc["soil"] = sensorData.soil;
   doc["light"] = sensorData.light;
   doc["water"] = sensorData.water;
-  doc["button"] = sensorData.button;
+  doc["motor"] = sensorData.motor;
   doc["rssi"] = WiFi.RSSI();
   JsonObject thresholds = doc["thresholds"].to<JsonObject>();
   thresholds["soilOnBelow"] = wateringConfig.soilOnBelow;
@@ -127,6 +128,7 @@ void publishStatus() {
   thresholds["humidityStop"] = wateringConfig.humidityStop;
   thresholds["lightMaxWatering"] = wateringConfig.lightMaxWatering;
   thresholds["lightStop"] = wateringConfig.lightStop;
+  thresholds["waterAmount"] = wateringConfig.waterAmount;
 
   char jsonBuffer[768];
   serializeJson(doc, jsonBuffer);
