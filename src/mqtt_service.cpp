@@ -72,7 +72,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     }
   }
 }
-}  // namespace
+}  
 
 void setupWifi() {
   delay(10);

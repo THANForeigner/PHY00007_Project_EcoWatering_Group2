@@ -3,10 +3,8 @@
 #include "i2c_service.h"
 #include "mqtt_service.h"
 
-// --- THÊM 2 BIẾN CỜ ĐỂ NHẬN YÊU CẦU TỪ MQTT ---
 bool requestManualPumpOn = false;
 bool requestManualPumpOff = false;
-
 static unsigned long pumpStartTime = 0; 
 const int PUMP_FLOW_RATE_ML_PER_S = 22;
 
@@ -56,14 +54,12 @@ void checkWateringCondition() {
                 
   const bool isOutOfWater = sensorData.water <= 5; 
 
-  if (!pumpState) { // TRẠNG THÁI: BƠM ĐANG TẮT
-    
-    // 1. KIỂM TRA LỆNH TỪ WEB (MQTT) TRƯỚC
+  if (!pumpState) {
     if (requestManualPumpOn) {
-      requestManualPumpOn = false; // Xoá cờ sau khi đã xử lý
+      requestManualPumpOn = false; 
       turnPumpOn("Manual MQTT command (Web/App)");
     } 
-    // 2. NẾU KHÔNG CÓ LỆNH WEB, CHẠY TỰ ĐỘNG
+
     else {
       const bool soilIsDry = sensorData.soil < wateringConfig.soilOnBelow;
       const bool temperatureIsSuitable = sensorData.temperature >= wateringConfig.tempMin &&
@@ -86,16 +82,14 @@ void checkWateringCondition() {
         }
       }
     }
-    requestManualPumpOff = false; // Đảm bảo xoá cờ tắt rác nếu bơm đang tắt
+    requestManualPumpOff = false; 
     
-  } else { // TRẠNG THÁI: BƠM ĐANG BẬT (ĐANG TƯỚI)
+  } else { 
     
-    // 1. KIỂM TRA LỆNH TẮT TỪ WEB (MQTT) TRƯỚC
     if (requestManualPumpOff) {
-      requestManualPumpOff = false; // Xoá cờ
+      requestManualPumpOff = false; 
       turnPumpOff("Manual MQTT command OFF (Web/App)");
     } 
-    // 2. NẾU KHÔNG, XỬ LÝ TẮT TỰ ĐỘNG
     else {
       unsigned long requiredDurationMs = ((unsigned long)wateringConfig.waterAmount * 1000) / 22;
       const bool targetAmountReached = (millis() - pumpStartTime) >= requiredDurationMs;
@@ -124,7 +118,7 @@ void checkWateringCondition() {
         Serial.println("-> Continue watering");
       }
     }
-    requestManualPumpOn = false; // Đảm bảo xoá cờ bật rác nếu bơm đã bật
+    requestManualPumpOn = false; 
   }
   Serial.println("-------------------------");
 }

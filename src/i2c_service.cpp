@@ -1,17 +1,16 @@
 #include <Arduino.h>
-#include <Wire.h> // Gọi lại thư viện Wire
+#include <Wire.h> 
 
 #include "app_state.h"
 #include "config.h"
 #include "watering_controller.h"
 
 void requestDataFromArduino() {
-  Wire.requestFrom(ARDUINO_I2C_ADDR, 40); // Đọc 40 bytes khớp với kích thước i2cData
+  Wire.requestFrom(ARDUINO_I2C_ADDR, 40); 
   String response = "";
   
   while (Wire.available()) {
     char c = Wire.read();
-    // Lọc ký tự rỗng của I2C để sscanf không bị lỗi
     if (c != 255 && c != '\0' && isPrintable(c)) {
       response += c;
     }
