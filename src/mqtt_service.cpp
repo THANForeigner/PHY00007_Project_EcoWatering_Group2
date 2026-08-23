@@ -7,7 +7,8 @@
 #include "app_state.h"
 #include "config.h"
 #include "watering_controller.h"
-
+extern bool requestManualPumpOn;
+extern bool requestManualPumpOff;
 namespace {
 WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
@@ -47,9 +48,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (String(topic) == MQTT_COMMAND_TOPIC) {
     message.toLowerCase();
     if (message == "on" || message == "1" || message == "true" || message == "high" || message == "open") {
-      turnPumpOn("Manual MQTT command");
+      requestManualPumpOn = true;
+      requestManualPumpOff = false;
+      Serial.println("MQTT Request: Bật bơm (Đang chờ hàm checkWateringCondition xử lý...)");
     } else if (message == "off" || message == "0" || message == "false" || message == "low" || message == "closed") {
-      turnPumpOff("Manual MQTT command");
+      requestManualPumpOff = true;
+      requestManualPumpOn = false;
+      Serial.println("MQTT Request: Tắt bơm (Đang chờ hàm checkWateringCondition xử lý...)");
     }
     return;
   }
@@ -116,19 +121,19 @@ void publishStatus() {
   doc["soil"] = sensorData.soil;
   doc["light"] = sensorData.light;
   doc["water"] = sensorData.water;
-  doc["motor"] = sensorData.motor;
   doc["rssi"] = WiFi.RSSI();
-  JsonObject thresholds = doc["thresholds"].to<JsonObject>();
-  thresholds["soilOnBelow"] = wateringConfig.soilOnBelow;
-  thresholds["soilOffAbove"] = wateringConfig.soilOffAbove;
-  thresholds["tempMin"] = wateringConfig.tempMin;
-  thresholds["tempMaxWatering"] = wateringConfig.tempMaxWatering;
-  thresholds["tempStop"] = wateringConfig.tempStop;
-  thresholds["humidityMaxWatering"] = wateringConfig.humidityMaxWatering;
-  thresholds["humidityStop"] = wateringConfig.humidityStop;
-  thresholds["lightMaxWatering"] = wateringConfig.lightMaxWatering;
-  thresholds["lightStop"] = wateringConfig.lightStop;
-  thresholds["waterAmount"] = wateringConfig.waterAmount;
+  
+  // JsonObject thresholds = doc["thresholds"].to<JsonObject>();
+  // thresholds["soilOnBelow"] = wateringConfig.soilOnBelow;
+  // thresholds["soilOffAbove"] = wateringConfig.soilOffAbove;
+  // thresholds["tempMin"] = wateringConfig.tempMin;
+  // thresholds["tempMaxWatering"] = wateringConfig.tempMaxWatering;
+  // thresholds["tempStop"] = wateringConfig.tempStop;
+  // thresholds["humidityMaxWatering"] = wateringConfig.humidityMaxWatering;
+  // thresholds["humidityStop"] = wateringConfig.humidityStop;
+  // thresholds["lightMaxWatering"] = wateringConfig.lightMaxWatering;
+  // thresholds["lightStop"] = wateringConfig.lightStop;
+  // thresholds["waterAmount"] = wateringConfig.waterAmount;
 
   char jsonBuffer[768];
   serializeJson(doc, jsonBuffer);

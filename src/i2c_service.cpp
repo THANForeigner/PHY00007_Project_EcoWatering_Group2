@@ -24,7 +24,7 @@ void requestDataFromArduino() {
   const int parsed = sscanf(response.c_str(), "%f,%f,%d,%d,%d,%d",
                             &receivedData.temperature, &receivedData.humidity,
                             &receivedData.light, &receivedData.soil,
-                            &receivedData.water, &receivedData.motor);
+                            &receivedData.water, &pumpState);
                             
   if (parsed == 6) {
     sensorData = receivedData;
